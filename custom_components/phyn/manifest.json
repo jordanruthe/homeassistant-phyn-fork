@@ -4,7 +4,7 @@
   "config_flow": true,
   "documentation": "https://www.home-assistant.io/integrations/phyn",
   "requirements": [
-    "git+https://github.com/jordanruthe/aiophyn.git@phyn_mqtt"
+    "git+https://github.com/jordanruthe/aiophyn.git@phyn_mqtt#aiophyn==2023.10.1"
   ],
   "codeowners": ["@mizterb","@jordanruthe"],
   "iot_class": "cloud_polling",
