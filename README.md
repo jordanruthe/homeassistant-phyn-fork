@@ -27,7 +27,19 @@ This custom component can be integrated into [HACS](https://github.com/hacs/inte
 
 # Configuration
 
-Configuration is done via the UI. Add the "Phyn" integration via the Integration settings, then provide the Phyn username and password in the configuration dialog.
+Configuration is done via the UI. Add the "Phyn" integration via the Integration settings and provide existing Phyn username and password.
+
+* In the Home Assistant UI, go to Settings > Devices & services, go to the Devices tab, and click "+ Add Device" on the bottom right.
+
+* Search for and select "Phyn".
+
+* A prompt will appear for you to enter your Phyn Account username and password. (This could sometimes take 2-3 minutes, or longer).
+
+# Known Issues
+
+* Phyn home name (in the Phyn App > Settings > Home > Address > Home Name) cannot be set to "Home" or integration configuration and setup will fail.
+
+* If get an (API) error when trying to first initialize saying "User Not Found" then take note that Phyn username e-mail address is case sensitive.
 
 ## Changelog
 
