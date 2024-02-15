@@ -133,7 +133,9 @@ class PhynWaterSensorDevice(PhynDevice):
             if entry['ts'] > item['ts']:
                 item = entry
 
-        self._water_statistics.update(item)
+        if item:
+            self._water_statistics.update(item)
+
         LOGGER.debug("Phyn Water device state: %s", self._device_state)
 
     async def async_setup(self):
