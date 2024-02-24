@@ -9,5 +9,5 @@
   "codeowners": ["@mizterb","@jordanruthe"],
   "iot_class": "cloud_polling",
   "loggers": ["aiophyn"],
-  "version": "2024.1.3"
+  "version": "2024.2.0"
 }
