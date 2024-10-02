@@ -86,6 +86,9 @@ class PhynDevice:
     def serial_number(self) -> str:
         """Return the serial number for the device."""
         return self._device_state["serial_number"]
+    
+    async def async_setup(self):
+        pass
 
     async def _update_firmware_information(self, *_) -> None:
         self._firmware_info.update(

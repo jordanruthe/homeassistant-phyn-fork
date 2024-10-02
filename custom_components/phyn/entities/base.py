@@ -4,6 +4,7 @@ from __future__ import annotations
 from typing import Any
 
 from homeassistant.helpers.entity import DeviceInfo, Entity
+from homeassistant.helpers.device_registry import CONNECTION_NETWORK_MAC
 
 from homeassistant.components.binary_sensor import (
     BinarySensorDeviceClass,
@@ -61,6 +62,8 @@ class PhynEntity(Entity):
             model=self._device.model,
             name=self._device.device_name.capitalize(),
             sw_version=self._device.firmware_version,
+            connections={(CONNECTION_NETWORK_MAC, self._device.id)},
+            serial_number=self._device.serial_number
         )
 
     @property
