@@ -2,6 +2,8 @@
 
 from typing import Any
 from ..const import LOGGER
+import math
+import time
 
 class PhynDevice:
     """Generice Phyn Device"""
@@ -98,7 +100,8 @@ class PhynDevice:
 
     async def _update_device_state(self, *_) -> None:
         """Update the device state from the API."""
-        self._device_state.update(await self._coordinator.api_client.device.get_state(
-            self._phyn_device_id
-        ))
-        #LOGGER.debug("Phyn device state: %s", self._device_state)
+        if 'last_updated' not in self._device_state or self._device_state['last_updated'] <= (math.floor(time.time()) - 60):
+            self._device_state.update(await self._coordinator.api_client.device.get_state( 
+                self._phyn_device_id
+            ))
+            self._device_state['last_updated'] = math.floor(time.time())

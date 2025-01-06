@@ -42,6 +42,9 @@ from ..entities.base import (
 )
 from .base import PhynDevice
 
+import math
+import time
+
 WATER_ICON = "mdi:water"
 GAUGE_ICON = "mdi:gauge"
 NAME_DAILY_USAGE = "Daily water usage"
@@ -248,7 +251,8 @@ class PhynPlusDevice(PhynDevice):
                 if "temperature" in data["sensor_data"]:
                     update_data.update({"temperature": data["sensor_data"]["temperature"]})
             self._device_state.update(update_data)
-            #LOGGER.debug("Device State: %s", self._device_state)
+            self._device_state['last_updated'] = math.floor(time.time())
+            LOGGER.debug("Updating device %s Device State: %s", self._phyn_device_id, self._device_state)
 
             for entity in self.entities:
                 entity.async_write_ha_state()
@@ -367,7 +371,8 @@ class PhynCurrentFlowRateSensor(PhynEntity, SensorEntity):
         """Return the current flow rate."""
         if self._device.current_flow_rate is None:
             return None
-        return round(self._device.current_flow_rate, 1) 
+        rate = round(self._device.current_flow_rate, 1)
+        return 0 if rate == 0 else rate
 
 class PhynValve(PhynEntity, ValveEntity):
     """ValveEntity for the Phyn valve."""
