@@ -14,7 +14,7 @@ async def async_setup_entry(
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up the Phyn switches from config entry."""
-    coordinator = hass.data[PHYN_DOMAIN][config_entry.entry_id]["coordinator"]
+    coordinator = hass.data[PHYN_DOMAIN]["coordinator"]
     entities = []
     for device in coordinator.devices:
         entities.extend([

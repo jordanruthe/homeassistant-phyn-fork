@@ -14,6 +14,7 @@ from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from .const import CLIENT, DOMAIN
 from .update_coordinator import PhynDataUpdateCoordinator
 from .exceptions import HaAuthError, HaCannotConnect
+from .services import phyn_leak_test_service_setup
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -45,10 +46,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up flo from a config entry."""
     session = async_get_clientsession(hass)
     hass.data.setdefault(DOMAIN, {})
-    hass.data[DOMAIN][entry.entry_id] = {}
+    hass.data[DOMAIN] = {}
     client_id = f"homeassistant-{hass.data['core.uuid']}"
     try:
-        hass.data[DOMAIN][entry.entry_id][CLIENT] = client = await async_get_api(
+        hass.data[DOMAIN][CLIENT] = client = await async_get_api(
             entry.data[CONF_USERNAME], entry.data[CONF_PASSWORD],
             phyn_brand=entry.data["Brand"].lower(), session=session,
             client_id=client_id
@@ -69,19 +70,20 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     for home in homes:
         for device in home["devices"]:
             coordinator.add_device(home["id"], device["device_id"], device["product_code"])
-    hass.data[DOMAIN][entry.entry_id]["coordinator"] = coordinator
+    hass.data[DOMAIN]["coordinator"] = coordinator
 
     await coordinator.async_refresh()
     await coordinator.async_setup()
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
+    await phyn_leak_test_service_setup(hass)
 
     return True
 
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Unload a config entry."""
-    client = hass.data[DOMAIN][entry.entry_id][CLIENT]
+    client = hass.data[DOMAIN][CLIENT]
     await client.mqtt.disconnect_and_wait()
     unload_ok = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
     if unload_ok:

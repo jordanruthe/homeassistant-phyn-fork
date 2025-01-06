@@ -1,0 +1,22 @@
+leak_test:
+  name: Start a leak test
+  description: Starts a leak test for a phyn smart valve
+  fields:
+    entity_id:
+      name: Valve
+      description: Valve to run leak test from
+      required: true
+      selector:
+        entity:
+          domain: valve
+    extended:
+      name: Extended Test
+      description: Extended leak test
+      required: false
+      example: true
+      default: false
+      selector:
+        select:
+          options:
+            - false
+            - true
