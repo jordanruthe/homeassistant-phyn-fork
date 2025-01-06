@@ -12,11 +12,7 @@ leak_test:
     extended:
       name: Extended Test
       description: Extended leak test
-      required: false
-      example: true
+      required: true
       default: false
       selector:
-        select:
-          options:
-            - false
-            - true
+        boolean:
