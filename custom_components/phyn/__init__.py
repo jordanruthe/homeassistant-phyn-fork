@@ -4,11 +4,15 @@ import logging
 
 from aiophyn import async_get_api
 from aiophyn.errors import RequestError
+from botocore.exceptions import ClientError
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_PASSWORD, CONF_USERNAME, Platform
 from homeassistant.core import HomeAssistant
-from homeassistant.exceptions import ConfigEntryNotReady
+from homeassistant.exceptions import (
+    ConfigEntryAuthFailed,
+    ConfigEntryNotReady
+)
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from .const import CLIENT, DOMAIN
@@ -54,8 +58,16 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             phyn_brand=entry.data["Brand"].lower(), session=session,
             client_id=client_id
         )
-    except RequestError as err:
-        raise ConfigEntryNotReady from err
+    except RequestError as error:
+        raise ConfigEntryNotReady from error
+    except ClientError as error:
+        if error.response['Error']['Code'] == "NotAuthorizedException":
+            raise ConfigEntryAuthFailed(
+                translation_domain=DOMAIN,
+                translation_key="auth_failed"
+            ) from error
+        else:
+            raise error
 
     homes = await client.home.get_homes(entry.data[CONF_USERNAME])
 
@@ -87,5 +99,6 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     await client.mqtt.disconnect_and_wait()
     unload_ok = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
     if unload_ok:
-        hass.data[DOMAIN].pop(entry.entry_id)
+        del hass.data[DOMAIN][CLIENT]
+        del hass.data[DOMAIN]["coordinator"]
     return unload_ok

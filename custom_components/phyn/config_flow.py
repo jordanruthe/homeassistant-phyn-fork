@@ -1,6 +1,7 @@
 """Config flow for phyn integration."""
 from aiophyn import async_get_api
 from aiophyn.errors import RequestError
+from botocore.exceptions import ClientError
 import voluptuous as vol
 
 from homeassistant import config_entries, core, exceptions
@@ -52,13 +53,46 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             try:
                 info = await validate_input(self.hass, user_input)
                 return self.async_create_entry(title=info["title"], data=user_input)
+            except ClientError as error:
+                if error.response['Error']['Code'] == "NotAuthorizedException":
+                    errors["base"] = "invalid_auth"
+                else:
+                    errors["base"] = "cannot_connect"
             except CannotConnect:
                 errors["base"] = "cannot_connect"
 
         return self.async_show_form(
             step_id="user", data_schema=DATA_SCHEMA, errors=errors
         )
+    
+    async def async_step_reconfigure(self, user_input: dict[str, any] | None = None):
+        errors = {}
+        reconfigure_entry = self._get_reconfigure_entry()
+        LOGGER.debug("Reconfigure entry: %s" % reconfigure_entry)
+        if user_input is not None:
+            try:
+                info = await validate_input(self.hass, user_input)
+                return self.async_update_reload_and_abort(
+                    reconfigure_entry, data_updates={
+                        CONF_USERNAME: user_input[CONF_USERNAME],
+                        CONF_PASSWORD: user_input[CONF_PASSWORD],
+                        "Brand": user_input["Brand"]
+                    }
+                )
+                return self.async_create_entry(title=info["title"], data=user_input)
+            except ClientError as error:
+                if error.response['Error']['Code'] == "NotAuthorizedException":
+                    errors["base"] = "invalid_auth"
+                else:
+                    errors["base"] = "cannot_connect"
+            except CannotConnect:
+                errors["base"] = "cannot_connect"
 
+        return self.async_show_form(
+            step_id="reconfigure",
+            data_schema=DATA_SCHEMA,
+            errors=errors
+        )
 
 class CannotConnect(exceptions.HomeAssistantError):
     """Error to indicate we cannot connect."""
