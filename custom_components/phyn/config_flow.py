@@ -17,6 +17,10 @@ DATA_SCHEMA = vol.Schema({
     vol.Required(CONF_PASSWORD): str,
     vol.Required("Brand"): vol.In(BRANDS),
 })
+REAUTH_SCHEMA = vol.Schema({
+    vol.Required(CONF_USERNAME): str,
+    vol.Required(CONF_PASSWORD): str
+})
 
 
 async def validate_input(hass: core.HomeAssistant, data):
@@ -63,6 +67,38 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
         return self.async_show_form(
             step_id="user", data_schema=DATA_SCHEMA, errors=errors
+        )
+    
+    async def async_step_reauth(self, entry_data):
+        return await self.async_step_reauth_confirm()
+    
+    async def async_step_reauth_confirm(self, user_input=None):
+        errors = {}
+        if user_input is not None:
+            reauth_entry = self._get_reauth_entry()
+            user_input.update({"Brand": reauth_entry.data.get("Brand")})
+            try:
+                info = await validate_input(self.hass, user_input)
+                return self.async_update_reload_and_abort(
+                    reauth_entry,
+                    data_updates={
+                        CONF_USERNAME: user_input[CONF_USERNAME],
+                        CONF_PASSWORD: user_input[CONF_PASSWORD]
+                    }
+                )
+                return self.async_create_entry(title=info["title"], data=user_input)
+            except ClientError as error:
+                if error.response['Error']['Code'] == "NotAuthorizedException":
+                    errors["base"] = "invalid_auth"
+                else:
+                    errors["base"] = "cannot_connect"
+            except CannotConnect:
+                errors["base"] = "cannot_connect"
+
+        return self.async_show_form(
+            step_id="reauth_confirm",
+            data_schema=REAUTH_SCHEMA,
+            errors=errors
         )
     
     async def async_step_reconfigure(self, user_input: dict[str, any] | None = None):

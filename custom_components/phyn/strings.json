@@ -19,6 +19,8 @@
     }
   },
   "exceptions": {
-    "auth_failed": "Authentication failed. Please reauthenticate."
+    "auth_failed": {
+      "message": "Authentication failed. Please reauthenticate."
+    }
   }
 }
