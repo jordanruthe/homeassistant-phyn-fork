@@ -66,12 +66,14 @@ class PhynPlusDevice(PhynDevice):
                 "ts": 0,
             }
         }
+        self._auto_shutoff: dict[str, Any] = {}
         self._away_mode: dict[str, Any] = {}
         self._water_usage: dict[str, Any] = {}
         self._last_known_valve_state: bool = True
         self._rt_device_state: dict[str, Any] = {}
 
         self.entities = [
+            PhynAutoShutoffModeSwitch(self),
             PhynAwayModeSwitch(self),
             PhynFlowState(self),
             PhynDailyUsageSensor(self),
@@ -91,6 +93,7 @@ class PhynPlusDevice(PhynDevice):
         try:
             async with timeout(20):
                 await self._update_device_state()
+                await self._update_autoshutoff()
                 await self._update_device_preferences()
                 await self._update_consumption_data()
 
@@ -168,6 +171,18 @@ class PhynPlusDevice(PhynDevice):
         await self._coordinator.api_client.mqtt.add_event_handler("update", self.on_device_update)
         await self._coordinator.api_client.mqtt.subscribe(f"prd/app_subscriptions/{self._phyn_device_id}")
         return self._device_state["sov_status"]["v"]
+    
+    @property
+    def autoshutoff_enabled(self) -> bool:
+        """Return True if auto shutoff enabled"""
+        if "auto_shutoff_enable" not in self._auto_shutoff:
+            return None
+        return self._auto_shutoff["auto_shutoff_enable"] == True
+    
+    async def set_autoshutoff_enabled(self, state: bool) -> None:
+        LOGGER.debug("Setting auto shutoff state: %s" % state)
+        await self._coordinator.api_client.device.set_autoshutoff_enabled(self._phyn_device_id, state)
+        self._auto_shutoff["auto_shutoff_enable"] = state
 
     @property
     def away_mode(self) -> bool:
@@ -217,6 +232,18 @@ class PhynPlusDevice(PhynDevice):
         }]
         await self._coordinator.api_client.set_device_preferences(self._phyn_device_id, params)
         self._device_preferences[key]["value"] = val
+    
+    async def _update_autoshutoff(self, *_) -> None:
+        """Update auto shutoff status"""
+        data = await self._coordinator.api_client.device.get_autoshuftoff_status(self._phyn_device_id)
+        LOGGER.debug("Autoshutoff info: %s" % data)
+        self._auto_shutoff.update(data)
+    
+    async def _update_away_mode(self, *_) -> None:
+        """Update the away mode data from the API"""
+        self._away_mode = await self._coordinator.api_client.device.get_away_mode(
+            self._phyn_device_id
+        )
 
     async def _update_device_preferences(self, *_) -> None:
         """Update the device preferences from the API"""
@@ -257,12 +284,34 @@ class PhynPlusDevice(PhynDevice):
             for entity in self.entities:
                 entity.async_write_ha_state()
 
-    async def _update_away_mode(self, *_) -> None:
-        """Update the away mode data from the API"""
-        self._away_mode = await self._coordinator.api_client.device.get_away_mode(
-            self._phyn_device_id
-        )
-        #LOGGER.debug("Phyn away mode: %s", self._away_mode)
+class PhynAutoShutoffModeSwitch(PhynSwitchEntity):
+    """Switch class for the Phyn Away Mode."""
+
+    def __init__(self, device) -> None:
+        """Initialize the Phyn Away Mode switch."""
+        super().__init__("autoshutoff_enabled", "Autoshutoff Enabled", device)
+        self._preference_name = "autoshutoff_enabled"
+
+    @property
+    def _state(self) -> bool:
+        return self._device.autoshutoff_enabled
+
+    @property
+    def icon(self):
+        """Return the icon to use for the away mode."""
+        if self.is_on:
+            return "mdi:bag-suitcase"
+        return "mdi:home-circle"
+    
+    async def async_turn_on(self, **kwargs: Any) -> None:
+        """Turn on the preference."""
+        await self._device.set_autoshutoff_enabled(True)
+        self.async_write_ha_state()
+
+    async def async_turn_off(self, **kwargs: Any) -> None:
+        """Turn off the preference."""
+        await self._device.set_autoshutoff_enabled(False)
+        self.async_write_ha_state()
 
 class PhynAwayModeSwitch(PhynSwitchEntity):
     """Switch class for the Phyn Away Mode."""
